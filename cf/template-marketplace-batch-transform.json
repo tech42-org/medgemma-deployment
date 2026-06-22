@@ -1,0 +1,358 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Creates a SageMaker model from an AWS Marketplace model package and a managed S3 bucket for notebook-driven batch transform input/output. Use the notebook or CLI to start the batch transform job.",
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "General Options"
+          },
+          "Parameters": [
+            "ProductARN",
+            "Referrer"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Data Options"
+          },
+          "Parameters": [
+            "BatchInputS3Prefix",
+            "BatchOutputS3Prefix"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Advanced Configuration"
+          },
+          "Parameters": [
+            "IAMRole"
+          ]
+        }
+      ],
+      "ParameterLabels": {
+        "IAMRole": {
+          "default": "SageMaker Execution Role ARN"
+        },
+        "ProductARN": {
+          "default": "Marketplace Product ARN"
+        },
+        "BatchInputS3Prefix": {
+          "default": "Input S3 Prefix"
+        },
+        "BatchOutputS3Prefix": {
+          "default": "Output S3 Prefix"
+        },
+        "Referrer": {
+          "default": "Marketplace Referrer URL"
+        }
+      }
+    }
+  },
+  "Parameters": {
+    "IAMRole": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Optional SageMaker execution role ARN. Leave blank to let this stack create one. The managed data bucket policy grants this role access to the input/output prefixes.",
+      "AllowedPattern": "^$|^arn:aws(-[a-z]+)?:iam::[0-9]{12}:role/.+",
+      "ConstraintDescription": "Must be blank or a valid IAM role ARN."
+    },
+    "ProductARN": {
+      "Type": "String",
+      "MinLength": 1,
+      "AllowedPattern": "^(arn:aws[a-z-]*:sagemaker:[a-z0-9-]+:[0-9]{12}:model-package/[A-Za-z0-9]([A-Za-z0-9-]{0,62})(/[0-9]{1,9})?|[A-Za-z0-9]([A-Za-z0-9-]{0,62})(/[0-9]{1,9})?)$",
+      "ConstraintDescription": "ProductARN must be the non-empty Marketplace model package ARN or model package name shown by AWS Marketplace.",
+      "Description": "AWS Marketplace product/model package ARN for the subscribed software version and region. Copy this from the AWS Marketplace configuration page."
+    },
+    "BatchInputS3Prefix": {
+      "Type": "String",
+      "Default": "input/",
+      "Description": "Prefix in the data bucket containing batch transform request JSON."
+    },
+    "BatchOutputS3Prefix": {
+      "Type": "String",
+      "Default": "output/",
+      "Description": "Prefix in the data bucket where transform output will be written."
+    },
+    "Referrer": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Optional link back to the Marketplace product configuration page."
+    }
+  },
+  "Conditions": {
+    "CreateExecutionRole": {
+      "Fn::Equals": [
+        {
+          "Ref": "IAMRole"
+        },
+        ""
+      ]
+    }
+  },
+  "Resources": {
+    "BatchDataBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerEnforced"
+            }
+          ]
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "Tags": [
+          {
+            "Key": "Purpose",
+            "Value": "SageMakerMarketplaceBatchTransformData"
+          }
+        ]
+      }
+    },
+    "ExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "CreateExecutionRole",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "sagemaker.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "sagemaker-marketplace-batch-transform-execution",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "CloudWatchLogs",
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:DescribeLogStreams",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/sagemaker/TransformJobs"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/sagemaker/TransformJobs:log-stream:*"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "BatchDataBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "BatchDataBucket"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "SageMakerBatchDataBucketList",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::If": [
+                    "CreateExecutionRole",
+                    {
+                      "Fn::GetAtt": [
+                        "ExecutionRole",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Ref": "IAMRole"
+                    }
+                  ]
+                }
+              },
+              "Action": [
+                "s3:GetBucketLocation",
+                "s3:ListBucket",
+                "s3:ListBucketMultipartUploads"
+              ],
+              "Resource": {
+                "Fn::GetAtt": [
+                  "BatchDataBucket",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Sid": "SageMakerBatchDataInputRead",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::If": [
+                    "CreateExecutionRole",
+                    {
+                      "Fn::GetAtt": [
+                        "ExecutionRole",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Ref": "IAMRole"
+                    }
+                  ]
+                }
+              },
+              "Action": [
+                "s3:GetObject"
+              ],
+              "Resource": {
+                "Fn::Sub": "${BatchDataBucket.Arn}/${BatchInputS3Prefix}*"
+              }
+            },
+            {
+              "Sid": "SageMakerBatchDataOutputWrite",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::If": [
+                    "CreateExecutionRole",
+                    {
+                      "Fn::GetAtt": [
+                        "ExecutionRole",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Ref": "IAMRole"
+                    }
+                  ]
+                }
+              },
+              "Action": [
+                "s3:AbortMultipartUpload",
+                "s3:ListMultipartUploadParts",
+                "s3:PutObject"
+              ],
+              "Resource": {
+                "Fn::Sub": "${BatchDataBucket.Arn}/${BatchOutputS3Prefix}*"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "Model": {
+      "Type": "AWS::SageMaker::Model",
+      "Properties": {
+        "EnableNetworkIsolation": true,
+        "ExecutionRoleArn": {
+          "Fn::If": [
+            "CreateExecutionRole",
+            {
+              "Fn::GetAtt": [
+                "ExecutionRole",
+                "Arn"
+              ]
+            },
+            {
+              "Ref": "IAMRole"
+            }
+          ]
+        },
+        "PrimaryContainer": {
+          "ModelPackageName": {
+            "Ref": "ProductARN"
+          }
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ModelName": {
+      "Description": "SageMaker model resource name generated by CloudFormation.",
+      "Value": {
+        "Fn::GetAtt": [
+          "Model",
+          "ModelName"
+        ]
+      }
+    },
+    "ExecutionRoleArn": {
+      "Description": "SageMaker execution role ARN used by the model.",
+      "Value": {
+        "Fn::If": [
+          "CreateExecutionRole",
+          {
+            "Fn::GetAtt": [
+              "ExecutionRole",
+              "Arn"
+            ]
+          },
+          {
+            "Ref": "IAMRole"
+          }
+        ]
+      }
+    },
+    "BatchDataBucketName": {
+      "Description": "Managed S3 bucket used for batch transform input and output.",
+      "Value": {
+        "Ref": "BatchDataBucket"
+      }
+    },
+    "BatchTransformInputS3Uri": {
+      "Description": "S3 input prefix for the batch transform job.",
+      "Value": {
+        "Fn::Sub": "s3://${BatchDataBucket}/${BatchInputS3Prefix}"
+      }
+    },
+    "BatchTransformOutputS3Uri": {
+      "Description": "S3 output prefix for the batch transform job.",
+      "Value": {
+        "Fn::Sub": "s3://${BatchDataBucket}/${BatchOutputS3Prefix}"
+      }
+    },
+    "ProductARN": {
+      "Description": "Marketplace model package ARN used by this SageMaker model.",
+      "Value": {
+        "Ref": "ProductARN"
+      }
+    },
+    "NextSteps": {
+      "Description": "Optional link back to the Marketplace configuration page.",
+      "Value": {
+        "Ref": "Referrer"
+      }
+    }
+  }
+}

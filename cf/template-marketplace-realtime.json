@@ -1,0 +1,596 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Creates a SageMaker real-time endpoint and dashboard from an AWS Marketplace model package. The endpoint name is provided as a parameter and the dashboard is named <stack-name>-dashboard.",
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "General Options"
+          },
+          "Parameters": [
+            "ProductARN",
+            "EndPointName",
+            "Referrer"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Size Options"
+          },
+          "Parameters": [
+            "InstanceType",
+            "InstancePoolFallbackInstanceType1",
+            "InstanceCount"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Scaling Options"
+          },
+          "Parameters": [
+            "EnableAutoScaling",
+            "MinInstanceCount",
+            "MaxInstanceCount",
+            "InvocationsPerInstanceTarget",
+            "ScaleInCooldownSeconds",
+            "ScaleOutCooldownSeconds"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Advanced Configuration"
+          },
+          "Parameters": [
+            "IAMRole",
+            "VariantName",
+            "ModelDataDownloadTimeoutInSeconds",
+            "ContainerStartupHealthCheckTimeoutInSeconds",
+            "VariantInstanceProvisionTimeoutInSeconds"
+          ]
+        }
+      ],
+      "ParameterLabels": {
+        "IAMRole": {
+          "default": "SageMaker Execution Role ARN"
+        },
+        "ProductARN": {
+          "default": "Marketplace Product ARN"
+        },
+        "EndPointName": {
+          "default": "Endpoint Name"
+        },
+        "InstanceType": {
+          "default": "Primary Instance Type"
+        },
+        "InstancePoolFallbackInstanceType1": {
+          "default": "Fallback Instance Type"
+        },
+        "InstanceCount": {
+          "default": "Initial Instance Count"
+        },
+        "EnableAutoScaling": {
+          "default": "Enable Auto Scaling"
+        },
+        "MinInstanceCount": {
+          "default": "Minimum Instance Count"
+        },
+        "MaxInstanceCount": {
+          "default": "Maximum Instance Count"
+        },
+        "InvocationsPerInstanceTarget": {
+          "default": "Invocations Per Instance Target"
+        },
+        "ScaleInCooldownSeconds": {
+          "default": "Scale-In Cooldown Seconds"
+        },
+        "ScaleOutCooldownSeconds": {
+          "default": "Scale-Out Cooldown Seconds"
+        },
+        "VariantName": {
+          "default": "Production Variant Name"
+        },
+        "ModelDataDownloadTimeoutInSeconds": {
+          "default": "Model Data Download Timeout Seconds"
+        },
+        "ContainerStartupHealthCheckTimeoutInSeconds": {
+          "default": "Container Startup Health Check Timeout Seconds"
+        },
+        "VariantInstanceProvisionTimeoutInSeconds": {
+          "default": "Instance Provision Timeout Seconds"
+        },
+        "Referrer": {
+          "default": "Marketplace Referrer URL"
+        }
+      }
+    }
+  },
+  "Parameters": {
+    "IAMRole": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Optional SageMaker execution role ARN. Leave blank to let this stack create one.",
+      "AllowedPattern": "^$|^arn:aws(-[a-z]+)?:iam::[0-9]{12}:role/.+",
+      "ConstraintDescription": "Must be blank or a valid IAM role ARN."
+    },
+    "ProductARN": {
+      "Type": "String",
+      "MinLength": 1,
+      "AllowedPattern": "^(arn:aws[a-z-]*:sagemaker:[a-z0-9-]+:[0-9]{12}:model-package/[A-Za-z0-9]([A-Za-z0-9-]{0,62})(/[0-9]{1,9})?|[A-Za-z0-9]([A-Za-z0-9-]{0,62})(/[0-9]{1,9})?)$",
+      "ConstraintDescription": "ProductARN must be the non-empty Marketplace model package ARN or model package name shown by AWS Marketplace.",
+      "Description": "AWS Marketplace product/model package ARN for the subscribed software version and region. Copy this from the AWS Marketplace configuration page."
+    },
+    "EndPointName": {
+      "Type": "String",
+      "Default": "medgemma-marketplace-endpoint",
+      "Description": "Name for the SageMaker endpoint.",
+      "AllowedPattern": "^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$",
+      "ConstraintDescription": "Endpoint name must be 1-63 characters, start/end with a letter or number, and contain only letters, numbers, and hyphens."
+    },
+    "InstanceType": {
+      "Type": "String",
+      "Default": "ml.g7e.2xlarge",
+      "Description": "Primary SageMaker real-time inference instance type. SageMaker tries this pool first.",
+      "AllowedValues": [
+        "ml.g5.xlarge",
+        "ml.g5.2xlarge",
+        "ml.g5.4xlarge",
+        "ml.g6.xlarge",
+        "ml.g6.2xlarge",
+        "ml.g6.4xlarge",
+        "ml.g6e.xlarge",
+        "ml.g6e.2xlarge",
+        "ml.g6e.4xlarge",
+        "ml.g7e.2xlarge",
+        "ml.g7e.4xlarge"
+      ]
+    },
+    "InstancePoolFallbackInstanceType1": {
+      "Type": "String",
+      "Default": "ml.g6e.2xlarge",
+      "Description": "Second-priority SageMaker real-time inference instance type used when the primary pool has insufficient capacity.",
+      "AllowedValues": [
+        "ml.g5.xlarge",
+        "ml.g5.2xlarge",
+        "ml.g5.4xlarge",
+        "ml.g6.xlarge",
+        "ml.g6.2xlarge",
+        "ml.g6.4xlarge",
+        "ml.g6e.xlarge",
+        "ml.g6e.2xlarge",
+        "ml.g6e.4xlarge",
+        "ml.g7e.2xlarge",
+        "ml.g7e.4xlarge"
+      ]
+    },
+    "InstanceCount": {
+      "Type": "Number",
+      "Default": 1,
+      "MinValue": 1,
+      "Description": "Initial instance count for the endpoint."
+    },
+    "EnableAutoScaling": {
+      "Type": "String",
+      "Default": "Yes",
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Description": "Whether to configure Application Auto Scaling for the endpoint variant."
+    },
+    "MinInstanceCount": {
+      "Type": "Number",
+      "Default": 1,
+      "MinValue": 1,
+      "Description": "Minimum instance count for endpoint autoscaling."
+    },
+    "MaxInstanceCount": {
+      "Type": "Number",
+      "Default": 4,
+      "MinValue": 1,
+      "Description": "Maximum instance count for endpoint autoscaling."
+    },
+    "InvocationsPerInstanceTarget": {
+      "Type": "Number",
+      "Default": 5,
+      "MinValue": 1,
+      "Description": "Target invocations per instance for real-time endpoint autoscaling."
+    },
+    "ScaleInCooldownSeconds": {
+      "Type": "Number",
+      "Default": 300,
+      "MinValue": 0,
+      "Description": "Cooldown, in seconds, after a scale-in activity."
+    },
+    "ScaleOutCooldownSeconds": {
+      "Type": "Number",
+      "Default": 60,
+      "MinValue": 0,
+      "Description": "Cooldown, in seconds, after a scale-out activity."
+    },
+    "VariantName": {
+      "Type": "String",
+      "Default": "AllTraffic",
+      "Description": "Production variant name.",
+      "AllowedPattern": "^[A-Za-z0-9]([A-Za-z0-9-]{0,62})?$",
+      "ConstraintDescription": "Variant name must start with a letter or number and contain only letters, numbers, and hyphens."
+    },
+    "ModelDataDownloadTimeoutInSeconds": {
+      "Type": "Number",
+      "Default": 3600,
+      "MinValue": 60,
+      "MaxValue": 3600,
+      "Description": "Maximum time SageMaker waits for model package artifacts to download."
+    },
+    "ContainerStartupHealthCheckTimeoutInSeconds": {
+      "Type": "Number",
+      "Default": 1800,
+      "MinValue": 60,
+      "MaxValue": 3600,
+      "Description": "Maximum time SageMaker waits for the container to pass startup health checks."
+    },
+    "VariantInstanceProvisionTimeoutInSeconds": {
+      "Type": "Number",
+      "Default": 1800,
+      "MinValue": 300,
+      "MaxValue": 3600,
+      "Description": "Maximum time SageMaker spends provisioning instances for the variant before failing. During this window SageMaker can retry lower-priority instance pools when capacity is unavailable."
+    },
+    "Referrer": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Optional link back to the Marketplace product configuration page."
+    }
+  },
+  "Conditions": {
+    "CreateExecutionRole": {
+      "Fn::Equals": [
+        {
+          "Ref": "IAMRole"
+        },
+        ""
+      ]
+    },
+    "AutoScalingEnabled": {
+      "Fn::Equals": [
+        {
+          "Ref": "EnableAutoScaling"
+        },
+        "Yes"
+      ]
+    },
+    "IsG5Instance": {
+      "Fn::Or": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "InstanceType"
+            },
+            "ml.g5.xlarge"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "InstanceType"
+            },
+            "ml.g5.2xlarge"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "InstanceType"
+            },
+            "ml.g5.4xlarge"
+          ]
+        }
+      ]
+    }
+  },
+  "Resources": {
+    "ExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "CreateExecutionRole",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "sagemaker.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "sagemaker-marketplace-endpoint-execution",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "CloudWatchLogs",
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:DescribeLogStreams",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/sagemaker/Endpoints/*"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/sagemaker/Endpoints/*:log-stream:*"
+                    }
+                  ]
+                },
+                {
+                  "Sid": "CloudWatchMetrics",
+                  "Effect": "Allow",
+                  "Action": "cloudwatch:PutMetricData",
+                  "Resource": "*",
+                  "Condition": {
+                    "StringEquals": {
+                      "cloudwatch:namespace": "AWS/SageMaker"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "Model": {
+      "Type": "AWS::SageMaker::Model",
+      "Properties": {
+        "EnableNetworkIsolation": true,
+        "ExecutionRoleArn": {
+          "Fn::If": [
+            "CreateExecutionRole",
+            {
+              "Fn::GetAtt": [
+                "ExecutionRole",
+                "Arn"
+              ]
+            },
+            {
+              "Ref": "IAMRole"
+            }
+          ]
+        },
+        "PrimaryContainer": {
+          "ModelPackageName": {
+            "Ref": "ProductARN"
+          }
+        }
+      }
+    },
+    "EndPointConfig": {
+      "Type": "AWS::SageMaker::EndpointConfig",
+      "Properties": {
+        "ProductionVariants": [
+          {
+            "ModelName": {
+              "Fn::GetAtt": [
+                "Model",
+                "ModelName"
+              ]
+            },
+            "VariantName": {
+              "Ref": "VariantName"
+            },
+            "InitialInstanceCount": {
+              "Ref": "InstanceCount"
+            },
+            "InstancePools": [
+              {
+                "InstanceType": {
+                  "Ref": "InstanceType"
+                },
+                "Priority": 1
+              },
+              {
+                "InstanceType": {
+                  "Ref": "InstancePoolFallbackInstanceType1"
+                },
+                "Priority": 2
+              }
+            ],
+            "InitialVariantWeight": 1,
+            "ModelDataDownloadTimeoutInSeconds": {
+              "Ref": "ModelDataDownloadTimeoutInSeconds"
+            },
+            "ContainerStartupHealthCheckTimeoutInSeconds": {
+              "Ref": "ContainerStartupHealthCheckTimeoutInSeconds"
+            },
+            "VariantInstanceProvisionTimeoutInSeconds": {
+              "Ref": "VariantInstanceProvisionTimeoutInSeconds"
+            },
+            "InferenceAmiVersion": {
+              "Fn::If": [
+                "IsG5Instance",
+                "al2-ami-sagemaker-inference-gpu-2-1",
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "EndPoint": {
+      "Type": "AWS::SageMaker::Endpoint",
+      "Properties": {
+        "EndpointName": {
+          "Ref": "EndPointName"
+        },
+        "EndpointConfigName": {
+          "Fn::GetAtt": [
+            "EndPointConfig",
+            "EndpointConfigName"
+          ]
+        }
+      }
+    },
+    "ScalableTarget": {
+      "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+      "Condition": "AutoScalingEnabled",
+      "DependsOn": "EndPoint",
+      "Properties": {
+        "MinCapacity": {
+          "Ref": "MinInstanceCount"
+        },
+        "MaxCapacity": {
+          "Ref": "MaxInstanceCount"
+        },
+        "ResourceId": {
+          "Fn::Sub": "endpoint/${EndPointName}/variant/${VariantName}"
+        },
+        "ScalableDimension": "sagemaker:variant:DesiredInstanceCount",
+        "ServiceNamespace": "sagemaker"
+      }
+    },
+    "InvocationsPerInstanceScalingPolicy": {
+      "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+      "Condition": "AutoScalingEnabled",
+      "Properties": {
+        "PolicyName": {
+          "Fn::Sub": "${EndPointName}-${VariantName}-invocations-target"
+        },
+        "PolicyType": "TargetTrackingScaling",
+        "ScalingTargetId": {
+          "Ref": "ScalableTarget"
+        },
+        "TargetTrackingScalingPolicyConfiguration": {
+          "TargetValue": {
+            "Ref": "InvocationsPerInstanceTarget"
+          },
+          "ScaleInCooldown": {
+            "Ref": "ScaleInCooldownSeconds"
+          },
+          "ScaleOutCooldown": {
+            "Ref": "ScaleOutCooldownSeconds"
+          },
+          "PredefinedMetricSpecification": {
+            "PredefinedMetricType": "SageMakerVariantInvocationsPerInstance"
+          }
+        }
+      }
+    },
+    "RealtimeEndpointDashboard": {
+      "Type": "AWS::CloudWatch::Dashboard",
+      "Properties": {
+        "DashboardName": {
+          "Fn::Sub": "${AWS::StackName}-dashboard"
+        },
+        "DashboardBody": {
+          "Fn::Sub": [
+            "{\n  \"variables\": [\n    {\n      \"type\": \"property\",\n      \"property\": \"EndpointName\",\n      \"inputType\": \"select\",\n      \"id\": \"endpointName\",\n      \"label\": \"Endpoint\",\n      \"visible\": true,\n      \"search\": \"{AWS/SageMaker,EndpointName,VariantName} MetricName=\\\"Invocations\\\"\",\n      \"populateFrom\": \"EndpointName\",\n      \"defaultValue\": \"${EndpointName}\"\n    },\n    {\n      \"type\": \"property\",\n      \"property\": \"VariantName\",\n      \"inputType\": \"select\",\n      \"id\": \"variantName\",\n      \"label\": \"Variant\",\n      \"visible\": true,\n      \"search\": \"{AWS/SageMaker,EndpointName,VariantName} MetricName=\\\"Invocations\\\" EndpointName=\\\"${EndpointName}\\\"\",\n      \"populateFrom\": \"VariantName\",\n      \"defaultValue\": \"${VariantName}\"\n    }\n  ],\n  \"widgets\": [\n    {\n      \"type\": \"text\",\n      \"x\": 0,\n      \"y\": 0,\n      \"width\": 24,\n      \"height\": 2,\n      \"properties\": {\n        \"markdown\": \"# SageMaker Realtime Endpoint Dashboard\\nEndpoint: `${EndpointName}` | Variant: `${VariantName}`\\n\\nLatency widgets convert SageMaker microsecond metrics to milliseconds using CloudWatch metric math.\"\n      }\n    },\n    {\n      \"type\": \"metric\",\n      \"x\": 0,\n      \"y\": 2,\n      \"width\": 8,\n      \"height\": 4,\n      \"properties\": {\n        \"title\": \"Invocations\",\n        \"region\": \"${AWS::Region}\",\n        \"view\": \"singleValue\",\n        \"metrics\": [\n          [\n            \"AWS/SageMaker\",\n            \"Invocations\",\n            \"EndpointName\",\n            \"${EndpointName}\",\n            \"VariantName\",\n            \"${VariantName}\",\n            {\n              \"stat\": \"Sum\",\n              \"label\": \"Invocations\"\n            }\n          ]\n        ],\n        \"period\": 60,\n        \"setPeriodToTimeRange\": true\n      }\n    },\n    {\n      \"type\": \"metric\",\n      \"x\": 8,\n      \"y\": 2,\n      \"width\": 8,\n      \"height\": 4,\n      \"properties\": {\n        \"title\": \"Errors\",\n        \"region\": \"${AWS::Region}\",\n        \"view\": \"singleValue\",\n        \"metrics\": [\n          [\n            \"AWS/SageMaker\",\n            \"Invocation4XXErrors\",\n            \"EndpointName\",\n            \"${EndpointName}\",\n            \"VariantName\",\n            \"${VariantName}\",\n            {\n              \"stat\": \"Sum\",\n              \"label\": \"4XX\"\n            }\n          ],\n          [\n            \".\",\n            \"Invocation5XXErrors\",\n            \".\",\n            \".\",\n            \".\",\n            \".\",\n            {\n              \"stat\": \"Sum\",\n              \"label\": \"5XX\"\n            }\n          ]\n        ],\n        \"period\": 60,\n        \"setPeriodToTimeRange\": true\n      }\n    },\n    {\n      \"type\": \"metric\",\n      \"x\": 16,\n      \"y\": 2,\n      \"width\": 8,\n      \"height\": 4,\n      \"properties\": {\n        \"title\": \"Model latency p95 (ms)\",\n        \"region\": \"${AWS::Region}\",\n        \"view\": \"singleValue\",\n        \"metrics\": [\n          [\n            \"AWS/SageMaker\",\n            \"ModelLatency\",\n            \"EndpointName\",\n            \"${EndpointName}\",\n            \"VariantName\",\n            \"${VariantName}\",\n            {\n              \"id\": \"m_model_p95\",\n              \"stat\": \"p95\",\n              \"visible\": false\n            }\n          ],\n          [\n            {\n              \"expression\": \"m_model_p95/1000\",\n              \"label\": \"Model p95 ms\",\n              \"id\": \"e_model_p95\"\n            }\n          ]\n        ],\n        \"period\": 60,\n        \"setPeriodToTimeRange\": true\n      }\n    },\n    {\n      \"type\": \"metric\",\n      \"x\": 0,\n      \"y\": 6,\n      \"width\": 12,\n      \"height\": 6,\n      \"properties\": {\n        \"title\": \"Invocations and errors\",\n        \"region\": \"${AWS::Region}\",\n        \"view\": \"timeSeries\",\n        \"stacked\": false,\n        \"metrics\": [\n          [\n            \"AWS/SageMaker\",\n            \"Invocations\",\n            \"EndpointName\",\n            \"${EndpointName}\",\n            \"VariantName\",\n            \"${VariantName}\",\n            {\n              \"stat\": \"Sum\",\n              \"label\": \"Invocations\"\n            }\n          ],\n          [\n            \".\",\n            \"Invocation4XXErrors\",\n            \".\",\n            \".\",\n            \".\",\n            \".\",\n            {\n              \"stat\": \"Sum\",\n              \"label\": \"4XX errors\"\n            }\n          ],\n          [\n            \".\",\n            \"Invocation5XXErrors\",\n            \".\",\n            \".\",\n            \".\",\n            \".\",\n            {\n              \"stat\": \"Sum\",\n              \"label\": \"5XX errors\"\n            }\n          ]\n        ],\n        \"period\": 60\n      }\n    },\n    {\n      \"type\": \"metric\",\n      \"x\": 12,\n      \"y\": 6,\n      \"width\": 12,\n      \"height\": 6,\n      \"properties\": {\n        \"title\": \"Error rate\",\n        \"region\": \"${AWS::Region}\",\n        \"view\": \"timeSeries\",\n        \"metrics\": [\n          [\n            \"AWS/SageMaker\",\n            \"Invocations\",\n            \"EndpointName\",\n            \"${EndpointName}\",\n            \"VariantName\",\n            \"${VariantName}\",\n            {\n              \"id\": \"m_inv\",\n              \"stat\": \"Sum\",\n              \"visible\": false\n            }\n          ],\n          [\n            \".\",\n            \"Invocation4XXErrors\",\n            \".\",\n            \".\",\n            \".\",\n            \".\",\n            {\n              \"id\": \"m_4xx\",\n              \"stat\": \"Sum\",\n              \"visible\": false\n            }\n          ],\n          [\n            \".\",\n            \"Invocation5XXErrors\",\n            \".\",\n            \".\",\n            \".\",\n            \".\",\n            {\n              \"id\": \"m_5xx\",\n              \"stat\": \"Sum\",\n              \"visible\": false\n            }\n          ],\n          [\n            {\n              \"expression\": \"IF(m_inv>0,100*(m_4xx+m_5xx)/m_inv,0)\",\n              \"label\": \"Error rate %\",\n              \"id\": \"e_error_rate\"\n            }\n          ]\n        ],\n        \"yAxis\": {\n          \"left\": {\n            \"min\": 0\n          }\n        },\n        \"period\": 60\n      }\n    },\n    {\n      \"type\": \"metric\",\n      \"x\": 0,\n      \"y\": 12,\n      \"width\": 12,\n      \"height\": 6,\n      \"properties\": {\n        \"title\": \"Model latency percentiles (ms)\",\n        \"region\": \"${AWS::Region}\",\n        \"view\": \"timeSeries\",\n        \"metrics\": [\n          [\n            \"AWS/SageMaker\",\n            \"ModelLatency\",\n            \"EndpointName\",\n            \"${EndpointName}\",\n            \"VariantName\",\n            \"${VariantName}\",\n            {\n              \"id\": \"m_model_p50\",\n              \"stat\": \"p50\",\n              \"visible\": false\n            }\n          ],\n          [\n            \"...\",\n            {\n              \"id\": \"m_model_p75\",\n              \"stat\": \"p75\",\n              \"visible\": false\n            }\n          ],\n          [\n            \"...\",\n            {\n              \"id\": \"m_model_p90\",\n              \"stat\": \"p90\",\n              \"visible\": false\n            }\n          ],\n          [\n            \"...\",\n            {\n              \"id\": \"m_model_p95\",\n              \"stat\": \"p95\",\n              \"visible\": false\n            }\n          ],\n          [\n            {\n              \"expression\": \"m_model_p50/1000\",\n              \"label\": \"p50\",\n              \"id\": \"e_model_p50\"\n            }\n          ],\n          [\n            {\n              \"expression\": \"m_model_p75/1000\",\n              \"label\": \"p75\",\n              \"id\": \"e_model_p75\"\n            }\n          ],\n          [\n            {\n              \"expression\": \"m_model_p90/1000\",\n              \"label\": \"p90\",\n              \"id\": \"e_model_p90\"\n            }\n          ],\n          [\n            {\n              \"expression\": \"m_model_p95/1000\",\n              \"label\": \"p95\",\n              \"id\": \"e_model_p95\"\n            }\n          ]\n        ],\n        \"period\": 60\n      }\n    },\n    {\n      \"type\": \"metric\",\n      \"x\": 12,\n      \"y\": 12,\n      \"width\": 12,\n      \"height\": 6,\n      \"properties\": {\n        \"title\": \"Overhead latency percentiles (ms)\",\n        \"region\": \"${AWS::Region}\",\n        \"view\": \"timeSeries\",\n        \"metrics\": [\n          [\n            \"AWS/SageMaker\",\n            \"OverheadLatency\",\n            \"EndpointName\",\n            \"${EndpointName}\",\n            \"VariantName\",\n            \"${VariantName}\",\n            {\n              \"id\": \"m_over_p50\",\n              \"stat\": \"p50\",\n              \"visible\": false\n            }\n          ],\n          [\n            \"...\",\n            {\n              \"id\": \"m_over_p75\",\n              \"stat\": \"p75\",\n              \"visible\": false\n            }\n          ],\n          [\n            \"...\",\n            {\n              \"id\": \"m_over_p90\",\n              \"stat\": \"p90\",\n              \"visible\": false\n            }\n          ],\n          [\n            \"...\",\n            {\n              \"id\": \"m_over_p95\",\n              \"stat\": \"p95\",\n              \"visible\": false\n            }\n          ],\n          [\n            {\n              \"expression\": \"m_over_p50/1000\",\n              \"label\": \"p50\",\n              \"id\": \"e_over_p50\"\n            }\n          ],\n          [\n            {\n              \"expression\": \"m_over_p75/1000\",\n              \"label\": \"p75\",\n              \"id\": \"e_over_p75\"\n            }\n          ],\n          [\n            {\n              \"expression\": \"m_over_p90/1000\",\n              \"label\": \"p90\",\n              \"id\": \"e_over_p90\"\n            }\n          ],\n          [\n            {\n              \"expression\": \"m_over_p95/1000\",\n              \"label\": \"p95\",\n              \"id\": \"e_over_p95\"\n            }\n          ]\n        ],\n        \"period\": 60\n      }\n    },\n    {\n      \"type\": \"metric\",\n      \"x\": 0,\n      \"y\": 18,\n      \"width\": 12,\n      \"height\": 6,\n      \"properties\": {\n        \"title\": \"Host CPU / memory / disk utilization\",\n        \"region\": \"${AWS::Region}\",\n        \"view\": \"timeSeries\",\n        \"metrics\": [\n          [\n            \"/aws/sagemaker/Endpoints\",\n            \"CPUUtilization\",\n            \"EndpointName\",\n            \"${EndpointName}\",\n            \"VariantName\",\n            \"${VariantName}\",\n            {\n              \"stat\": \"Average\",\n              \"label\": \"CPU avg\"\n            }\n          ],\n          [\n            \".\",\n            \"MemoryUtilization\",\n            \".\",\n            \".\",\n            \".\",\n            \".\",\n            {\n              \"stat\": \"Average\",\n              \"label\": \"Memory avg\"\n            }\n          ],\n          [\n            \".\",\n            \"DiskUtilization\",\n            \".\",\n            \".\",\n            \".\",\n            \".\",\n            {\n              \"stat\": \"Average\",\n              \"label\": \"Disk avg\"\n            }\n          ]\n        ],\n        \"yAxis\": {\n          \"left\": {\n            \"min\": 0\n          }\n        },\n        \"period\": 60\n      }\n    },\n    {\n      \"type\": \"metric\",\n      \"x\": 12,\n      \"y\": 18,\n      \"width\": 12,\n      \"height\": 6,\n      \"properties\": {\n        \"title\": \"GPU utilization / memory\",\n        \"region\": \"${AWS::Region}\",\n        \"view\": \"timeSeries\",\n        \"metrics\": [\n          [\n            \"/aws/sagemaker/Endpoints\",\n            \"GPUUtilization\",\n            \"EndpointName\",\n            \"${EndpointName}\",\n            \"VariantName\",\n            \"${VariantName}\",\n            {\n              \"stat\": \"Average\",\n              \"label\": \"GPU avg\"\n            }\n          ],\n          [\n            \"...\",\n            {\n              \"stat\": \"Maximum\",\n              \"label\": \"GPU max\"\n            }\n          ],\n          [\n            \".\",\n            \"GPUMemoryUtilization\",\n            \".\",\n            \".\",\n            \".\",\n            \".\",\n            {\n              \"stat\": \"Average\",\n              \"label\": \"GPU memory avg\"\n            }\n          ],\n          [\n            \"...\",\n            {\n              \"stat\": \"Maximum\",\n              \"label\": \"GPU memory max\"\n            }\n          ]\n        ],\n        \"yAxis\": {\n          \"left\": {\n            \"min\": 0\n          }\n        },\n        \"period\": 60\n      }\n    },\n    {\n      \"type\": \"metric\",\n      \"x\": 0,\n      \"y\": 24,\n      \"width\": 24,\n      \"height\": 6,\n      \"properties\": {\n        \"title\": \"Model and overhead latency p95 (ms)\",\n        \"region\": \"${AWS::Region}\",\n        \"view\": \"timeSeries\",\n        \"metrics\": [\n          [\n            \"AWS/SageMaker\",\n            \"ModelLatency\",\n            \"EndpointName\",\n            \"${EndpointName}\",\n            \"VariantName\",\n            \"${VariantName}\",\n            {\n              \"id\": \"m_model\",\n              \"stat\": \"p95\",\n              \"visible\": false\n            }\n          ],\n          [\n            \".\",\n            \"OverheadLatency\",\n            \".\",\n            \".\",\n            \".\",\n            \".\",\n            {\n              \"id\": \"m_over\",\n              \"stat\": \"p95\",\n              \"visible\": false\n            }\n          ],\n          [\n            {\n              \"expression\": \"m_model/1000\",\n              \"label\": \"Model p95 ms\",\n              \"id\": \"e_model\"\n            }\n          ],\n          [\n            {\n              \"expression\": \"m_over/1000\",\n              \"label\": \"Overhead p95 ms\",\n              \"id\": \"e_over\"\n            }\n          ]\n        ],\n        \"period\": 60\n      }\n    },\n    {\n      \"type\": \"log\",\n      \"x\": 0,\n      \"y\": 30,\n      \"width\": 24,\n      \"height\": 6,\n      \"properties\": {\n        \"title\": \"Endpoint errors\",\n        \"region\": \"${AWS::Region}\",\n        \"query\": \"SOURCE '/aws/sagemaker/Endpoints/${EndpointName}' | fields @timestamp, @message | filter @message like /ERROR|Error|Exception|Traceback|OOM|CUDA|timeout|Timed out/ | sort @timestamp desc | limit 100\",\n        \"view\": \"table\"\n      }\n    },\n    {\n      \"type\": \"log\",\n      \"x\": 0,\n      \"y\": 36,\n      \"width\": 24,\n      \"height\": 6,\n      \"properties\": {\n        \"title\": \"Endpoint logs tail\",\n        \"region\": \"${AWS::Region}\",\n        \"query\": \"SOURCE '/aws/sagemaker/Endpoints/${EndpointName}' | fields @timestamp, @message | sort @timestamp desc | limit 100\",\n        \"view\": \"table\"\n      }\n    }\n  ]\n}",
+            {
+              "EndpointName": {
+                "Ref": "EndPointName"
+              },
+              "VariantName": {
+                "Ref": "VariantName"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "EndPointConfigName": {
+      "Description": "SageMaker endpoint configuration name.",
+      "Value": {
+        "Fn::GetAtt": [
+          "EndPointConfig",
+          "EndpointConfigName"
+        ]
+      }
+    },
+    "EndpointName": {
+      "Description": "SageMaker endpoint name.",
+      "Value": {
+        "Ref": "EndPointName"
+      }
+    },
+    "EndPointURL": {
+      "Description": "Use this runtime URL after endpoint creation completes.",
+      "Value": {
+        "Fn::Sub": "https://runtime.sagemaker.${AWS::Region}.amazonaws.com/endpoints/${EndPointName}/invocations"
+      }
+    },
+    "ModelName": {
+      "Description": "SageMaker model resource name generated by CloudFormation.",
+      "Value": {
+        "Fn::GetAtt": [
+          "Model",
+          "ModelName"
+        ]
+      }
+    },
+    "ExecutionRoleArn": {
+      "Description": "SageMaker execution role ARN used by the model.",
+      "Value": {
+        "Fn::If": [
+          "CreateExecutionRole",
+          {
+            "Fn::GetAtt": [
+              "ExecutionRole",
+              "Arn"
+            ]
+          },
+          {
+            "Ref": "IAMRole"
+          }
+        ]
+      }
+    },
+    "ProductARN": {
+      "Description": "Marketplace model package ARN used by this endpoint.",
+      "Value": {
+        "Ref": "ProductARN"
+      }
+    },
+    "AutoScalingResourceId": {
+      "Condition": "AutoScalingEnabled",
+      "Description": "Application Auto Scaling resource ID for the SageMaker endpoint variant.",
+      "Value": {
+        "Fn::Sub": "endpoint/${EndPointName}/variant/${VariantName}"
+      }
+    },
+    "AutoScalingPolicyName": {
+      "Condition": "AutoScalingEnabled",
+      "Description": "Application Auto Scaling target tracking policy name.",
+      "Value": {
+        "Fn::Sub": "${EndPointName}-${VariantName}-invocations-target"
+      }
+    },
+    "NextSteps": {
+      "Description": "Optional link back to the Marketplace configuration page.",
+      "Value": {
+        "Ref": "Referrer"
+      }
+    },
+    "DashboardName": {
+      "Description": "CloudWatch dashboard name.",
+      "Value": {
+        "Ref": "RealtimeEndpointDashboard"
+      }
+    },
+    "DashboardURL": {
+      "Description": "CloudWatch dashboard URL.",
+      "Value": {
+        "Fn::Sub": "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${RealtimeEndpointDashboard}"
+      }
+    }
+  }
+}
