@@ -179,7 +179,7 @@ Template in this repo: [`cf/template-marketplace-realtime.json`]({{ '/cf/templat
 ### How to use
 {: #real-time-how-to-use }
 
-- **Test the endpoint:** [`notebooks/realtime_endpoint.ipynb`]({{ '/notebooks/realtime_endpoint.ipynb' | relative_url }})
+- **Test the endpoint:** [`notebooks/realtime_endpoint.ipynb`](https://github.com/tech42-org/medgemma-deployment/blob/github-pages/notebooks/realtime_endpoint.ipynb)
   invokes the endpoint with a medical image and reads the response. A sample input image is at
   `notebooks/inputs/chest_xray.png`.
 - **Autoscaling** is on by default (`Enable Auto Scaling = Yes`); tune it with the *Scaling*
@@ -209,7 +209,7 @@ The actual transform job is started by the notebook.
 2. Set a **Stack name**.
 3. Fill the **required** parameter (see [Parameters](#batch-parameters)).
 4. Click **Create stack** and wait for `CREATE_COMPLETE`.
-5. Open [`notebooks/batch_transform.ipynb`]({{ '/notebooks/batch_transform.ipynb' | relative_url }}),
+5. Open [`notebooks/batch_transform.ipynb`](https://github.com/tech42-org/medgemma-deployment/blob/github-pages/notebooks/batch_transform.ipynb),
    fill the CloudFormation outputs (`ModelName`, `ExecutionRoleArn`, `BatchDataBucketName`),
    and run the cells. The notebook uploads a JSONL batch, starts the transform job, waits for
    completion, and reads the output.
@@ -237,7 +237,7 @@ Template in this repo: [`cf/template-marketplace-batch-transform.json`]({{ '/cf/
 ### How to use
 {: #batch-how-to-use }
 
-- **Run a job:** [`notebooks/batch_transform.ipynb`]({{ '/notebooks/batch_transform.ipynb' | relative_url }})
+- **Run a job:** [`notebooks/batch_transform.ipynb`](https://github.com/tech42-org/medgemma-deployment/blob/github-pages/notebooks/batch_transform.ipynb)
   uploads a JSONL batch request, launches the transform job, and reads the output. A sample input image is
   at `notebooks/inputs/chest_xray.png`.
 - **Instance families:** the **G5 family is not supported** (CUDA/driver image incompatibility) —
