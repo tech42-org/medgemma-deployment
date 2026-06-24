@@ -1,0 +1,33 @@
+# Source documents (not part of the published site)
+.docs/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+
+# Jekyll / GitHub Pages build artifacts
+_site/
+.jekyll-cache/
+.jekyll-metadata
+.sass-cache/
+Gemfile.lock
+
+# Python / notebooks
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+.python-version
+
+# Environment / secrets
+.env
+.env.*
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*~
