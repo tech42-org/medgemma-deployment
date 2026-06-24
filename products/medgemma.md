@@ -23,14 +23,15 @@ AWS Marketplace SageMaker model package. This guide walks you through deploying 
 
 1. [Prerequisites](#prerequisites)
 2. [Subscribe in AWS Marketplace](#subscribe-in-aws-marketplace)
-3. [Deploy the model](#deploy-the-model)
-   - [Get the Model ARN](#1-get-the-model-arn-prerequisite)
-   - [Real-time endpoint](#2a-deploy-a-real-time-endpoint)
-   - [Batch transform job](#2b-deploy-a-batch-transform-job)
-4. [Stack parameters reference](#stack-parameters-reference)
-   - [Real-time endpoint parameters](#real-time-endpoint-parameters)
-   - [Batch transform parameters](#batch-transform-parameters)
-5. [Run inference (notebooks)](#run-inference-notebooks)
+3. [Get the Model ARN](#get-the-model-arn)
+4. [Real-time inference](#real-time-inference)
+   - [Steps](#real-time-steps)
+   - [Parameters](#real-time-parameters)
+   - [Additional info](#real-time-additional-info)
+5. [Batch transform](#batch-transform)
+   - [Steps](#batch-steps)
+   - [Parameters](#batch-parameters)
+   - [Additional info](#batch-additional-info)
 6. [Known issues](#known-issues)
 
 ---
@@ -38,7 +39,7 @@ AWS Marketplace SageMaker model package. This guide walks you through deploying 
 ## Prerequisites
 
 - An AWS account with permission to use **AWS Marketplace**, **CloudFormation**, and **SageMaker**.
-- **Service quota** for the instance type used by the endpoint:
+- **Service quota** for the instance type used by the deployment:
   - Real-time inference → *SageMaker hosting* (endpoint usage) quota.
   - Batch transform → *SageMaker batch transform job* quota.
 - The quota must exist **in the AWS Region where you deploy**. See [Known issues](#known-issues)
@@ -72,14 +73,10 @@ AWS Marketplace SageMaker model package. This guide walks you through deploying 
 
 ---
 
-## Deploy the model
+## Get the Model ARN
 
-Deployment is three steps: **get the Model ARN → launch a CloudFormation stack → run a notebook.**
-
-### 1. Get the Model ARN (prerequisite)
-
-The Model package ARN changes with both the **Region** and the **product version**, so copy the
-one that matches your target Region.
+Both deployment options need the Marketplace **Model package ARN**. It changes with both the
+**Region** and the **product version**, so copy the one that matches your target Region.
 
 1. Go to **AWS Marketplace → Manage Subscriptions** and open your **MedGemma** subscription,
    then click **Configure** (top right).
@@ -97,70 +94,58 @@ one that matches your target Region.
 {: .warning }
 > This page is **only** for copying the Model ARN. Do **not** click **Launch CloudFormation
 > template** (or **Download CloudFormation template**) here — those use the default AWS
-> Marketplace stack. Instead, deploy with the **Tech42 CloudFormation templates** in
-> [step 2a](#2a-deploy-a-real-time-endpoint) / [step 2b](#2b-deploy-a-batch-transform-job),
-> which provision the full set of resources recommended for this implementation (autoscaling,
+> Marketplace stack. Instead, deploy with the **Tech42 CloudFormation templates** under
+> [Real-time inference](#real-time-inference) / [Batch transform](#batch-transform), which
+> provision the full set of resources recommended for this implementation (autoscaling,
 > CloudWatch dashboard, execution role, encryption/VPC options, and more).
-
-### 2a. Deploy a real-time endpoint
-
-Launch the real-time stack (or open it from the product's **Usage instructions** page):
-
-| Deployment type | Launch |
-|---|---|
-| **Real-time inference** | [![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?templateURL=https://tech42-medgemma-deployment-assets.s3.us-east-1.amazonaws.com/template-marketplace-realtime.json) |
-
-Then:
-
-1. Set a **Stack name**.
-2. Fill the **Parameters** — paste the **Model ARN** from step 1 into **Marketplace Product ARN**.
-   This is the only required field; every other parameter has a sensible default. See the
-   [Real-time endpoint parameters](#real-time-endpoint-parameters) reference below.
-3. Click **Create stack** and wait for `CREATE_COMPLETE`.
-
-Template in this repo: [`cf/template-marketplace-realtime.json`]({{ '/cf/template-marketplace-realtime.json' | relative_url }})
-(creates the SageMaker model, endpoint config, endpoint, and a CloudWatch dashboard).
-
-### 2b. Deploy a batch transform job
-
-| Deployment type | Launch |
-|---|---|
-| **Batch transform** | [![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?templateURL=https://tech42-medgemma-deployment-assets.s3.us-east-1.amazonaws.com/template-marketplace-batch-transform.json) |
-
-Same flow: set a stack name, paste the **Model ARN**, create the stack. Unlike the real-time
-template, batch transform also requires a **SageMaker Execution Role ARN**, an **Input S3 URI**,
-and an **Output S3 URI**. See the [Batch transform parameters](#batch-transform-parameters)
-reference below.
-
-Template in this repo: [`cf/template-marketplace-batch-transform.json`]({{ '/cf/template-marketplace-batch-transform.json' | relative_url }})
-(creates the SageMaker model plus a managed S3 bucket for batch input/output).
 
 ---
 
-## Stack parameters reference
+## Real-time inference
 
-When you launch a stack, CloudFormation prompts for the parameters below, grouped exactly as
-they appear in the console. **Bold "Required"** fields have no default and must be supplied;
-everything else can be left at its default for a standard deployment.
+A persistent HTTPS endpoint for **synchronous, low-latency** inference — best for interactive
+or online use.
 
-### Real-time endpoint parameters
+### Steps
+{: #real-time-steps }
 
-**General Options**
+1. Launch the real-time stack (or open it from the product's **Usage instructions** page):
+
+   [![Launch the real-time stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?templateURL=https://tech42-medgemma-deployment-assets.s3.us-east-1.amazonaws.com/template-marketplace-realtime.json)
+
+2. Set a **Stack name**.
+3. Paste the **Model ARN** from [Get the Model ARN](#get-the-model-arn) into **Marketplace
+   Product ARN** — the only required field.
+4. Click **Create stack** and wait for `CREATE_COMPLETE`.
+
+Template in this repo: [`cf/template-marketplace-realtime.json`]({{ '/cf/template-marketplace-realtime.json' | relative_url }})
+— creates the SageMaker model, endpoint config, endpoint, and a CloudWatch dashboard.
+
+### Parameters
+{: #real-time-parameters }
+
+**Required**
+
+- **Marketplace Product ARN** — the Model ARN from [Get the Model ARN](#get-the-model-arn)
+  (your subscribed **version + Region**). Everything below has a sensible default.
+
+**Optional settings** (defaults shown)
+
+*General*
 
 | Parameter | Default | Notes |
 |---|---|---|
-| Marketplace Product ARN | **Required** | Model package ARN for your subscribed **version + Region**, copied from the Marketplace configuration page ([step 1](#1-get-the-model-arn-prerequisite)). |
 | Endpoint Name | `medgemma-marketplace-endpoint` | Name of the SageMaker endpoint. 1–63 chars; letters, numbers, hyphens. |
 | Marketplace Referrer URL | — | Optional link back to the Marketplace configuration page. |
 
-**Size Options**
+*Size*
 
 | Parameter | Default | Notes |
 |---|---|---|
 | Instance Type | `ml.g7e.2xlarge` | Allowed: `ml.g5.xlarge/2xlarge/4xlarge`, `ml.g6.xlarge/2xlarge/4xlarge`, `ml.g6e.xlarge/2xlarge/4xlarge`, `ml.g7e.2xlarge/4xlarge`. Drives cost and the quota you need. |
 | Initial Instance Count | `1` | Instances launched with the endpoint (min 1). |
 
-**Scaling Options**
+*Scaling*
 
 | Parameter | Default | Notes |
 |---|---|---|
@@ -171,7 +156,7 @@ everything else can be left at its default for a standard deployment.
 | Scale-In Cooldown Seconds | `300` | Wait after a scale-in before the next. |
 | Scale-Out Cooldown Seconds | `60` | Wait after a scale-out before the next. |
 
-**Advanced Configuration**
+*Advanced*
 
 | Parameter | Default | Notes |
 |---|---|---|
@@ -180,7 +165,7 @@ everything else can be left at its default for a standard deployment.
 | Model Data Download Timeout Seconds | `3600` | 60–3600. Max wait for model artifacts to download. |
 | Container Startup Health Check Timeout Seconds | `1800` | 60–3600. Max wait for the container to pass health checks. |
 
-**Security & Encryption**
+*Security & Encryption*
 
 | Parameter | Default | Notes |
 |---|---|---|
@@ -189,7 +174,7 @@ everything else can be left at its default for a standard deployment.
 | VPC Security Group IDs | — | Comma-separated SG IDs. **Required if** VPC Subnet IDs is set. |
 | Enable Network Isolation | `Yes` | `Yes`/`No`. Blocks outbound network from the model container. |
 
-**Storage & Monitoring**
+*Storage & Monitoring*
 
 | Parameter | Default | Notes |
 |---|---|---|
@@ -197,33 +182,75 @@ everything else can be left at its default for a standard deployment.
 | Data Capture S3 URI | — | S3 URI to capture requests/responses for monitoring. Blank = disabled. |
 | Data Capture Sampling % | `0` | 0–100. Used only when Data Capture S3 URI is set. |
 
-### Batch transform parameters
+### Additional info
+{: #real-time-additional-info }
 
-**General Options**
+- **Test the endpoint:** [`notebooks/realtime_endpoint.ipynb`]({{ '/notebooks/realtime_endpoint.ipynb' | relative_url }})
+  invokes the endpoint with a medical image and reads the response. A sample input image is at
+  `notebooks/inputs/chest_xray.png`.
+- **Autoscaling** is on by default (`Enable Auto Scaling = Yes`); tune it with the *Scaling*
+  parameters above.
+- **Quota:** the endpoint needs *SageMaker hosting* quota for the chosen instance type in the
+  Region — see [Known issues](#known-issues).
+
+---
+
+## Batch transform
+
+An **offline** job that runs the model over a dataset in S3 and writes results back to S3 —
+no persistent endpoint. Best for bulk/asynchronous processing.
+
+### Steps
+{: #batch-steps }
+
+1. Launch the batch transform stack:
+
+   [![Launch the batch transform stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?templateURL=https://tech42-medgemma-deployment-assets.s3.us-east-1.amazonaws.com/template-marketplace-batch-transform.json)
+
+2. Set a **Stack name**.
+3. Fill the **required** parameters: the **Model ARN**, a **SageMaker Execution Role ARN**, and
+   the **Input**/**Output S3 URIs** (see [Parameters](#batch-parameters)).
+4. Click **Create stack** and wait for `CREATE_COMPLETE`.
+
+Template in this repo: [`cf/template-marketplace-batch-transform.json`]({{ '/cf/template-marketplace-batch-transform.json' | relative_url }})
+— creates the SageMaker model plus a managed S3 bucket for batch input/output.
+
+### Parameters
+{: #batch-parameters }
+
+**Required**
+
+| Parameter | Value to set |
+|---|---|
+| Marketplace Product ARN | The Model ARN from [Get the Model ARN](#get-the-model-arn) (your subscribed **version + Region**). |
+| SageMaker Execution Role ARN | A valid IAM role ARN SageMaker assumes to run the job. Unlike real-time, the batch template does **not** create one. |
+| Input S3 URI | S3 prefix or object holding the batch request JSON. |
+| Output S3 URI | S3 prefix where transform output is written. |
+
+**Optional settings** (defaults shown)
+
+*General*
 
 | Parameter | Default | Notes |
 |---|---|---|
-| Marketplace Product ARN | **Required** | Model package ARN for your subscribed **version + Region** ([step 1](#1-get-the-model-arn-prerequisite)). |
 | Batch Transform Job Name | `medgemma-marketplace-batch` | Must be unique in the account/Region. 1–63 chars. |
 | Marketplace Referrer URL | — | Optional link back to the Marketplace configuration page. |
 
-**Data Options**
+*Data*
 
 | Parameter | Default | Notes |
 |---|---|---|
-| Input S3 URI | **Required** | S3 prefix or object holding the batch request JSON. |
-| Output S3 URI | **Required** | S3 prefix where transform output is written. |
 | Input Content Type | `application/json` | MIME type of the input records. |
 | Output Accept MIME Type | `application/json` | Requested MIME type of the output. |
 
-**Size Options**
+*Size*
 
 | Parameter | Default | Notes |
 |---|---|---|
 | Instance Type | `ml.g5.2xlarge` | **The G5 family is not supported for batch transform** (CUDA/driver image incompatibility — see [Known issues](#known-issues)). Override the default with a newer supported GPU family. |
 | Instance Count | `1` | Instances for the transform job (min 1). |
 
-**Transform Options**
+*Transform*
 
 | Parameter | Default | Notes |
 |---|---|---|
@@ -236,11 +263,10 @@ everything else can be left at its default for a standard deployment.
 | S3 Data Type | `S3Prefix` | `S3Prefix`/`ManifestFile`/`EnhancedManifestFile`. |
 | Container Environment (JSON) | — | Optional JSON of env vars, e.g. `{"MAX_BATCH_SIZE":"8"}`. |
 
-**Advanced Configuration**
+*Advanced*
 
 | Parameter | Default | Notes |
 |---|---|---|
-| SageMaker Execution Role ARN | **Required** | Valid IAM role ARN SageMaker assumes to run the job (unlike real-time, the batch template does **not** create one). |
 | Batch Transform AMI Version | `al2-ami-sagemaker-batch-gpu-535` | Keep the default for the CUDA GPU image. |
 | Data Processing Input Filter | — | Optional JSONPath to filter input before transform. |
 | Data Processing Output Filter | — | Optional JSONPath to filter output after transform. |
@@ -248,7 +274,7 @@ everything else can be left at its default for a standard deployment.
 | Model Client Max Retries | `0` | 0–100. `0` = SageMaker default. |
 | Model Client Timeout (ms) | `0` | `0` = SageMaker default; max 3600000. |
 
-**Security & Encryption**
+*Security & Encryption*
 
 | Parameter | Default | Notes |
 |---|---|---|
@@ -257,18 +283,16 @@ everything else can be left at its default for a standard deployment.
 | VPC Security Group IDs | — | Comma-separated SG IDs. **Required if** VPC Subnet IDs is set. |
 | Enable Network Isolation | `Yes` | `Yes`/`No`. |
 
----
+### Additional info
+{: #batch-additional-info }
 
-## Run inference (notebooks)
-
-Example notebooks live in the [`notebooks/`]({{ '/notebooks/' | relative_url }}) folder:
-
-| Notebook | Purpose |
-|---|---|
-| [`realtime_endpoint.ipynb`]({{ '/notebooks/realtime_endpoint.ipynb' | relative_url }}) | Invoke the real-time endpoint with a medical image and read the response. |
-| [`batch_transform.ipynb`]({{ '/notebooks/batch_transform.ipynb' | relative_url }}) | Upload a JSONL batch request, launch a batch transform job, and read the output. |
-
-A sample input image is provided at `notebooks/inputs/chest_xray.png`.
+- **Run a job:** [`notebooks/batch_transform.ipynb`]({{ '/notebooks/batch_transform.ipynb' | relative_url }})
+  uploads a JSONL batch request, launches the job, and reads the output. A sample input image is
+  at `notebooks/inputs/chest_xray.png`.
+- **Instance families:** the **G5 family is not supported** (CUDA/driver image incompatibility) —
+  pick a newer supported GPU family. See [Known issues](#known-issues).
+- **Quota:** the job needs *SageMaker batch transform* quota for the chosen instance type in the
+  Region.
 
 ---
 
