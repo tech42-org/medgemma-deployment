@@ -1,0 +1,11 @@
+title: MedGemma on AWS
+description: >-
+  Deploy MedGemma on Amazon SageMaker via AWS Marketplace — real-time
+  endpoint or batch transform, with example notebooks.
+
+theme: minima
+
+# Project page lives under /medgemma-deployment/. baseurl MUST be set or
+# minima's asset links resolve to the domain root and 404 (blank/unstyled page).
+url: https://tech42-org.github.io
+baseurl: /medgemma-deployment

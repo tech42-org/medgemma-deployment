@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # MedGemma on AWS — Deployment Guide
 
 > Subscribe to **MedGemma** via AWS Marketplace, deploy it to Amazon SageMaker, and run
