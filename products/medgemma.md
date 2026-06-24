@@ -174,14 +174,6 @@ Template in this repo: [`cf/template-marketplace-realtime.json`]({{ '/cf/templat
 | VPC Security Group IDs | — | Comma-separated SG IDs. **Required if** VPC Subnet IDs is set. |
 | Enable Network Isolation | `Yes` | `Yes`/`No`. Blocks outbound network from the model container. |
 
-*Storage & Monitoring*
-
-| Parameter | Default | Notes |
-|---|---|---|
-| EBS Volume Size GB | `0` | `0` = SageMaker default for the instance; otherwise 1–16384. |
-| Data Capture S3 URI | — | S3 URI to capture requests/responses for monitoring. Blank = disabled. |
-| Data Capture Sampling % | `0` | 0–100. Used only when Data Capture S3 URI is set. |
-
 ### Additional info
 {: #real-time-additional-info }
 
