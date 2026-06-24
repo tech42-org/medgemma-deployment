@@ -247,7 +247,7 @@ Template in this repo: [`cf/template-marketplace-batch-transform.json`]({{ '/cf/
 
 | Parameter | Default | Notes |
 |---|---|---|
-| Instance Type | `ml.g5.2xlarge` | **The G5 family is not supported for batch transform** (CUDA/driver image incompatibility — see [Known issues](#known-issues)). Override the default with a newer supported GPU family. |
+| Instance Type | `ml.g7e.2xlarge` | Allowed: `ml.g6.xlarge/2xlarge/4xlarge`, `ml.g6e.xlarge/2xlarge/4xlarge`, `ml.g7e.2xlarge/4xlarge`. The **G5 family is not supported** (CUDA/driver image incompatibility — see [Known issues](#known-issues)). |
 | Instance Count | `1` | Instances for the transform job (min 1). |
 
 *Transform*
