@@ -94,6 +94,14 @@ one that matches your target Region.
 
    ![Setup page with AWS CloudFormation selected and the Model ARNs panel on the right]({{ '/images/05_fetch_arn.png' | relative_url }})
 
+{: .warning }
+> This page is **only** for copying the Model ARN. Do **not** click **Launch CloudFormation
+> template** (or **Download CloudFormation template**) here — those use the default AWS
+> Marketplace stack. Instead, deploy with the **Tech42 CloudFormation templates** in
+> [step 2a](#2a-deploy-a-real-time-endpoint) / [step 2b](#2b-deploy-a-batch-transform-job),
+> which provision the full set of resources recommended for this implementation (autoscaling,
+> CloudWatch dashboard, execution role, encryption/VPC options, and more).
+
 ### 2a. Deploy a real-time endpoint
 
 Launch the real-time stack (or open it from the product's **Usage instructions** page):

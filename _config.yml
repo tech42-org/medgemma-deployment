@@ -19,6 +19,15 @@ search_enabled: true
 heading_anchors: true
 color_scheme: light
 
+# Callout boxes (used as {: .note } / {: .warning } above a blockquote)
+callouts:
+  note:
+    title: Note
+    color: blue
+  warning:
+    title: Important
+    color: yellow
+
 # Top-right auxiliary link
 aux_links:
   "tech42consulting.com":
