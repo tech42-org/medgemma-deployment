@@ -1,3 +1,6 @@
+# Source documents (not part of the published site)
+.docs/
+
 # macOS
 .DS_Store
 .AppleDouble
