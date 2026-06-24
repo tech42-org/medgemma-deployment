@@ -220,7 +220,7 @@ everything else can be left at its default for a standard deployment.
 
 | Parameter | Default | Notes |
 |---|---|---|
-| Instance Type | `ml.g5.2xlarge` | Allowed: `ml.g5.xlarge`…`ml.g5.48xlarge`, `ml.p3.2xlarge/8xlarge/16xlarge`. |
+| Instance Type | `ml.g5.2xlarge` | **The G5 family is not supported for batch transform** (CUDA/driver image incompatibility — see [Known issues](#known-issues)). Override the default with a newer supported GPU family. |
 | Instance Count | `1` | Instances for the transform job (min 1). |
 
 **Transform Options**
@@ -278,6 +278,7 @@ A sample input image is provided at `notebooks/inputs/chest_xray.png`.
 |---|---|---|
 | Stack fails creating the endpoint | **Quota not available** — the account has **0** quota for the instance type. | Request a quota increase in **Service Quotas → Amazon SageMaker** for the endpoint instance type, then redeploy. |
 | `ResourceLimitExceeded` during deploy | **Insufficient quota in the Region.** | Raise the quota in that Region, or deploy in a Region where you already have capacity. |
+| Batch transform job fails to start or crashes on a **G5** instance | The MedGemma batch transform image ships the GPU driver / CUDA build required by the newer instance families. The **G5 family is not compatible** with that image. | Choose a newer supported GPU family for batch transform — **do not select `ml.g5.*`**. |
 
 ---
 
