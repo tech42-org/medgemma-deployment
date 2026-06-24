@@ -1,0 +1,5 @@
+// Just the Docs imports this file before its own variable defaults, so values
+// set here win over the theme defaults (which use `!default`).
+
+// Widen the main content column. Theme default is 50rem (~800px).
+$content-width: 1100px;

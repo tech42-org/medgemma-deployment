@@ -1,0 +1,10 @@
+// Appended after the theme styles — CSS fallback in case the theme version does
+// not import custom/setup.scss for the $content-width override.
+
+.main {
+  max-width: 1100px;
+}
+
+.main-content {
+  max-width: none;
+}
