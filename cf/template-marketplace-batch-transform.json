@@ -27,11 +27,15 @@
             "default": "Advanced Configuration"
           },
           "Parameters": [
+            "InstanceType",
             "IAMRole"
           ]
         }
       ],
       "ParameterLabels": {
+        "InstanceType": {
+          "default": "SageMaker Instance Type"
+        },
         "IAMRole": {
           "default": "SageMaker Execution Role ARN"
         },
@@ -79,6 +83,13 @@
       "Type": "String",
       "Default": "",
       "Description": "Optional link back to the Marketplace product configuration page."
+    },
+    "InstanceType": {
+      "Type": "String",
+      "Default": "ml.g5.2xlarge",
+      "Description": "SageMaker instance type for the batch transform job. ml.g5.* instances are not supported. The instance type should begin with ml.",
+      "AllowedPattern": "^ml\\..+",
+      "ConstraintDescription": "Instance type must begin with 'ml.'."
     }
   },
   "Conditions": {
