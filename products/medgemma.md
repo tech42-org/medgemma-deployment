@@ -192,20 +192,25 @@ Template in this repo: [`cf/template-marketplace-realtime.json`]({{ '/cf/templat
 An **offline** job that runs the model over a dataset in S3 and writes results back to S3 —
 no persistent endpoint. Best for bulk/asynchronous processing.
 
+The CloudFormation template creates the infrastructure (SageMaker model, IAM role, and S3 bucket).
+The actual transform job is started by the notebook.
+
 ### Steps
 {: #batch-steps }
 
-1. Launch the batch transform stack:
+1. Launch the batch stack:
 
    [![Launch the batch transform stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?templateURL=https://tech42-medgemma-deployment-assets.s3.us-east-1.amazonaws.com/template-marketplace-batch-transform.json)
 
 2. Set a **Stack name**.
-3. Fill the **required** parameters: the **Model ARN**, a **SageMaker Execution Role ARN**, and
-   the **Input**/**Output S3 URIs** (see [Parameters](#batch-parameters)).
+3. Fill the **required** parameter (see [Parameters](#batch-parameters)).
 4. Click **Create stack** and wait for `CREATE_COMPLETE`.
+5. Open [`notebooks/batch_transform.ipynb`]({{ '/notebooks/batch_transform.ipynb' | relative_url }}),
+   fill the CloudFormation outputs (`ModelName`, `ExecutionRoleArn`, `BatchDataBucketName`),
+   and run the cells. The notebook uploads a JSONL batch, starts the transform job, waits for
+   completion, and reads the output.
 
 Template in this repo: [`cf/template-marketplace-batch-transform.json`]({{ '/cf/template-marketplace-batch-transform.json' | relative_url }})
-— creates the SageMaker model plus a managed S3 bucket for batch input/output.
 
 ### Parameters
 {: #batch-parameters }
@@ -215,74 +220,24 @@ Template in this repo: [`cf/template-marketplace-batch-transform.json`]({{ '/cf/
 | Parameter | Value to set |
 |---|---|
 | Marketplace Product ARN | The Model ARN from [Get the Model ARN](#get-the-model-arn) (your subscribed **version + Region**). |
-| SageMaker Execution Role ARN | A valid IAM role ARN SageMaker assumes to run the job. Unlike real-time, the batch template does **not** create one. |
-| Input S3 URI | S3 prefix or object holding the batch request JSON. |
-| Output S3 URI | S3 prefix where transform output is written. |
 
 **Optional settings** (defaults shown)
 
-*General*
-
 | Parameter | Default | Notes |
 |---|---|---|
-| Batch Transform Job Name | `medgemma-marketplace-batch` | Must be unique in the account/Region. 1–63 chars. |
+| Input S3 Prefix | `input/` | Prefix in the managed bucket where the notebook will upload batch input. |
+| Output S3 Prefix | `output/` | Prefix in the managed bucket where transform output will be written. |
+| SageMaker Execution Role ARN | *(created by stack)* | Optional. Leave blank to let the stack create a role with the required S3 and CloudWatch permissions. |
 | Marketplace Referrer URL | — | Optional link back to the Marketplace configuration page. |
-
-*Data*
-
-| Parameter | Default | Notes |
-|---|---|---|
-| Input Content Type | `application/json` | MIME type of the input records. |
-| Output Accept MIME Type | `application/json` | Requested MIME type of the output. |
-
-*Size*
-
-| Parameter | Default | Notes |
-|---|---|---|
-| Instance Type | `ml.g7e.2xlarge` | Allowed: `ml.g6.xlarge/2xlarge/4xlarge`, `ml.g6e.xlarge/2xlarge/4xlarge`, `ml.g7e.2xlarge/4xlarge`. The **G5 family is not supported** (CUDA/driver image incompatibility — see [Known issues](#known-issues)). |
-| Instance Count | `1` | Instances for the transform job (min 1). |
-
-*Transform*
-
-| Parameter | Default | Notes |
-|---|---|---|
-| Max Concurrent Transforms | `1` | Concurrent requests sent to each instance. |
-| Max Payload Size MB | `6` | 1–100. Largest single record payload. |
-| Batch Strategy | `SingleRecord` | `SingleRecord`/`MultiRecord`. |
-| Input Split Type | `None` | `None`/`Line`/`RecordIO`/`TFRecord`. How input is split into records. |
-| Input Compression Type | `None` | `None`/`Gzip`. |
-| Output Assembly | `None` | `None`/`Line`. How output records are assembled. |
-| S3 Data Type | `S3Prefix` | `S3Prefix`/`ManifestFile`/`EnhancedManifestFile`. |
-| Container Environment (JSON) | — | Optional JSON of env vars, e.g. `{"MAX_BATCH_SIZE":"8"}`. |
-
-*Advanced*
-
-| Parameter | Default | Notes |
-|---|---|---|
-| Batch Transform AMI Version | `al2-ami-sagemaker-batch-gpu-535` | Keep the default for the CUDA GPU image. |
-| Data Processing Input Filter | — | Optional JSONPath to filter input before transform. |
-| Data Processing Output Filter | — | Optional JSONPath to filter output after transform. |
-| Data Processing Join Source | `None` | `None`/`Input`/`Output`. Join transform input with output. |
-| Model Client Max Retries | `0` | 0–100. `0` = SageMaker default. |
-| Model Client Timeout (ms) | `0` | `0` = SageMaker default; max 3600000. |
-
-*Security & Encryption*
-
-| Parameter | Default | Notes |
-|---|---|---|
-| KMS Key ID | — | Key ID (UUID) or ARN to encrypt job output. Blank = default SSE-S3. |
-| VPC Subnet IDs | — | Comma-separated subnet IDs. Blank = no VPC. |
-| VPC Security Group IDs | — | Comma-separated SG IDs. **Required if** VPC Subnet IDs is set. |
-| Enable Network Isolation | `Yes` | `Yes`/`No`. |
 
 ### Additional info
 {: #batch-additional-info }
 
 - **Run a job:** [`notebooks/batch_transform.ipynb`]({{ '/notebooks/batch_transform.ipynb' | relative_url }})
-  uploads a JSONL batch request, launches the job, and reads the output. A sample input image is
+  uploads a JSONL batch request, launches the transform job, and reads the output. A sample input image is
   at `notebooks/inputs/chest_xray.png`.
 - **Instance families:** the **G5 family is not supported** (CUDA/driver image incompatibility) —
-  pick a newer supported GPU family. See [Known issues](#known-issues).
+  pick a newer supported GPU family in the notebook. See [Known issues](#known-issues).
 - **Quota:** the job needs *SageMaker batch transform* quota for the chosen instance type in the
   Region.
 
