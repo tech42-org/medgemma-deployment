@@ -42,9 +42,19 @@ templates and example notebooks you need to deploy it as a **real-time endpoint*
 ## Subscribe in AWS Marketplace
 
 1. Open the [AWS Marketplace](https://aws.amazon.com/marketplace).
-2. Search for **"MedGemma"** and select the product offered by **Tech42**.
-3. Click **View purchase options**.
-4. Review the **EULA** and pricing, then click **Subscribe**.
+2. Search for **"MedGemma"** and select the product offered by **Tech42**
+   (top match: *MedGemma 1.5 4B*).
+
+   ![AWS Marketplace search for "medgemma" — MedGemma 1.5 4B by Tech42 is the top match](images/01_subscribe.png)
+
+3. On the listing page, click **View purchase options**.
+
+   ![MedGemma 1.5 4B listing page with the View purchase options button](images/02_subscribe.png)
+
+4. Review the **EULA**, pricing, and purchase details, then click **Subscribe**.
+
+   ![Purchase details page showing the offer and the Subscribe button](images/03_subscribe.png)
+
 5. Wait **1–2 minutes** for the subscription to validate in your account.
 
 **Confirm the subscription:**
