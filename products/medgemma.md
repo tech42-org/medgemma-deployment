@@ -27,11 +27,11 @@ AWS Marketplace SageMaker model package. This guide walks you through deploying 
 4. [Real-time inference](#real-time-inference)
    - [Steps](#real-time-steps)
    - [Parameters](#real-time-parameters)
-   - [Additional info](#real-time-additional-info)
-5. [Batch transform](#batch-transform)
-   - [Steps](#batch-steps)
-   - [Parameters](#batch-parameters)
-   - [Additional info](#batch-additional-info)
+   - [How to use](#real-time-how-to-use)
+ 5. [Batch transform](#batch-transform)
+    - [Steps](#batch-steps)
+    - [Parameters](#batch-parameters)
+    - [How to use](#batch-how-to-use)
 6. [Known issues](#known-issues)
 
 ---
@@ -176,8 +176,8 @@ Template in this repo: [`cf/template-marketplace-realtime.json`]({{ '/cf/templat
 | VPC Security Group IDs | — | Comma-separated SG IDs. **Required if** VPC Subnet IDs is set. |
 | Enable Network Isolation | `Yes` | `Yes`/`No`. Blocks outbound network from the model container. |
 
-### Additional info
-{: #real-time-additional-info }
+### How to use
+{: #real-time-how-to-use }
 
 - **Test the endpoint:** [`notebooks/realtime_endpoint.ipynb`]({{ '/notebooks/realtime_endpoint.ipynb' | relative_url }})
   invokes the endpoint with a medical image and reads the response. A sample input image is at
@@ -234,8 +234,8 @@ Template in this repo: [`cf/template-marketplace-batch-transform.json`]({{ '/cf/
 | SageMaker Execution Role ARN | *(created by stack)* | Optional. Leave blank to let the stack create a role with the required S3 and CloudWatch permissions. |
 | Marketplace Referrer URL | — | Optional link back to the Marketplace configuration page. |
 
-### Additional info
-{: #batch-additional-info }
+### How to use
+{: #batch-how-to-use }
 
 - **Run a job:** [`notebooks/batch_transform.ipynb`]({{ '/notebooks/batch_transform.ipynb' | relative_url }})
   uploads a JSONL batch request, launches the transform job, and reads the output. A sample input image is
