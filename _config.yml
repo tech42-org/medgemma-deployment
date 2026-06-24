@@ -1,11 +1,29 @@
-title: MedGemma on AWS
+title: Tech42 Consulting
 description: >-
-  Deploy MedGemma on Amazon SageMaker via AWS Marketplace — real-time
-  endpoint or batch transform, with example notebooks.
+  Tech42 Consulting — AI products and deployment guides, including MedGemma on
+  Amazon SageMaker via AWS Marketplace.
 
-theme: minima
-
-# Project page lives under /medgemma-deployment/. baseurl MUST be set or
-# minima's asset links resolve to the domain root and 404 (blank/unstyled page).
+# GitHub Pages project site lives under /medgemma-deployment/. baseurl MUST be set
+# or theme/asset links resolve to the domain root and 404 (blank/unstyled page).
 url: https://tech42-org.github.io
 baseurl: /medgemma-deployment
+
+# Just the Docs theme — left sidebar navigation + built-in search — pulled as a
+# remote theme (works on GitHub Pages "deploy from a branch").
+remote_theme: just-the-docs/just-the-docs
+plugins:
+  - jekyll-remote-theme
+
+# --- Just the Docs options ---
+search_enabled: true
+heading_anchors: true
+color_scheme: light
+
+# Top-right auxiliary link
+aux_links:
+  "tech42consulting.com":
+    - "https://tech42consulting.com"
+aux_links_new_tab: true
+
+# Collapsible child pages in the sidebar
+nav_external_links: []
