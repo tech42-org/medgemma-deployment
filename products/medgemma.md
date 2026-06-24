@@ -106,6 +106,8 @@ Both deployment options need the Marketplace **Model package ARN**. It changes w
 A persistent HTTPS endpoint for **synchronous, low-latency** inference — best for interactive
 or online use.
 
+![Real-time inference architecture diagram]({{ '/images/06_real_time_diagram.png' | relative_url }})
+
 ### Steps
 {: #real-time-steps }
 
@@ -194,6 +196,8 @@ no persistent endpoint. Best for bulk/asynchronous processing.
 
 The CloudFormation template creates the infrastructure (SageMaker model, IAM role, and S3 bucket).
 The actual transform job is started by the notebook.
+
+![Batch transform architecture diagram]({{ '/images/06_batch_job_diagram.png' | relative_url }})
 
 ### Steps
 {: #batch-steps }
