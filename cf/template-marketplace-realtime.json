@@ -132,9 +132,6 @@
       "Default": "ml.g7e.2xlarge",
       "Description": "Primary SageMaker real-time inference instance type. SageMaker tries this pool first.",
       "AllowedValues": [
-        "ml.g5.xlarge",
-        "ml.g5.2xlarge",
-        "ml.g5.4xlarge",
         "ml.g6.xlarge",
         "ml.g6.2xlarge",
         "ml.g6.4xlarge",
@@ -150,9 +147,6 @@
       "Default": "ml.g6e.2xlarge",
       "Description": "Second-priority SageMaker real-time inference instance type used when the primary pool has insufficient capacity.",
       "AllowedValues": [
-        "ml.g5.xlarge",
-        "ml.g5.2xlarge",
-        "ml.g5.4xlarge",
         "ml.g6.xlarge",
         "ml.g6.2xlarge",
         "ml.g6.4xlarge",
@@ -259,34 +253,6 @@
         "Yes"
       ]
     },
-    "IsG5Instance": {
-      "Fn::Or": [
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "InstanceType"
-            },
-            "ml.g5.xlarge"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "InstanceType"
-            },
-            "ml.g5.2xlarge"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "InstanceType"
-            },
-            "ml.g5.4xlarge"
-          ]
-        }
-      ]
-    }
   },
   "Resources": {
     "ExecutionRole": {
@@ -411,15 +377,6 @@
             },
             "VariantInstanceProvisionTimeoutInSeconds": {
               "Ref": "VariantInstanceProvisionTimeoutInSeconds"
-            },
-            "InferenceAmiVersion": {
-              "Fn::If": [
-                "IsG5Instance",
-                "al2-ami-sagemaker-inference-gpu-2-1",
-                {
-                  "Ref": "AWS::NoValue"
-                }
-              ]
             }
           }
         ]

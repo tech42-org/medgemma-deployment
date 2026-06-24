@@ -142,7 +142,7 @@ Template in this repo: [`cf/template-marketplace-realtime.json`]({{ '/cf/templat
 
 | Parameter | Default | Notes |
 |---|---|---|
-| Instance Type | `ml.g7e.2xlarge` | Allowed: `ml.g5.xlarge/2xlarge/4xlarge`, `ml.g6.xlarge/2xlarge/4xlarge`, `ml.g6e.xlarge/2xlarge/4xlarge`, `ml.g7e.2xlarge/4xlarge`. Drives cost and the quota you need. |
+| Instance Type | `ml.g7e.2xlarge` | Allowed: `ml.g6.xlarge/2xlarge/4xlarge`, `ml.g6e.xlarge/2xlarge/4xlarge`, `ml.g7e.2xlarge/4xlarge`. The **G5 family is not supported** (CUDA/driver image incompatibility). Drives cost and the quota you need. |
 | Initial Instance Count | `1` | Instances launched with the endpoint (min 1). |
 
 *Scaling*
@@ -302,7 +302,7 @@ Template in this repo: [`cf/template-marketplace-batch-transform.json`]({{ '/cf/
 |---|---|---|
 | Stack fails creating the endpoint | **Quota not available** — the account has **0** quota for the instance type. | Request a quota increase in **Service Quotas → Amazon SageMaker** for the endpoint instance type, then redeploy. |
 | `ResourceLimitExceeded` during deploy | **Insufficient quota in the Region.** | Raise the quota in that Region, or deploy in a Region where you already have capacity. |
-| Batch transform job fails to start or crashes on a **G5** instance | The MedGemma batch transform image ships the GPU driver / CUDA build required by the newer instance families. The **G5 family is not compatible** with that image. | Choose a newer supported GPU family for batch transform — **do not select `ml.g5.*`**. |
+| Endpoint fails to start or batch transform crashes on a **G5** instance | The MedGemma image ships the GPU driver / CUDA build required by the newer instance families. The **G5 family is not compatible** with that image for either real-time endpoints or batch transform. | Choose a newer supported GPU family — **do not select `ml.g5.*`** for real-time or batch transform. |
 
 ---
 
