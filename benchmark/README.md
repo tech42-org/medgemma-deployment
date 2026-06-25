@@ -34,28 +34,28 @@ The G7e SageMaker real-time endpoint keeps both p90 TTFT and p90 full-response
 latency low as concurrency increases. At `c64`, p90 TTFT is 6.34 seconds and
 p90 full-response latency is 8.30 seconds.
 
-![G7e p90 TTFT and full-response latency by concurrency](imgs/g7e/resized-g7e_ttft_vs_e2e_graph.png)
+![G7e p90 TTFT and full-response latency by concurrency](imgs/g7e/1_g7e_ttft_vs_e2e_graph.png)
 
 ### Latency Data
 
 The table below lists the p90 TTFT and p90 full-response latency values used in
 the G7e latency chart.
 
-![G7e latency data table](imgs/g7e/resized-g7e_ttft_vs_e2e_table.png)
+![G7e latency data table](imgs/g7e/1_g7e_ttft_vs_e2e_table.png)
 
 ### Throughput by Concurrency
 
 G7e endpoint throughput scales strongly as concurrency rises, reaching 5.90
 average RPS and 7.53 p90 RPS at `c64`.
 
-![G7e average and p90 throughput by concurrency](imgs/g7e/resized-g7e_throughput_vs_concurrency.png)
+![G7e average and p90 throughput by concurrency](imgs/g7e/2_g7e_throughput_vs_concurrency.png)
 
 ### Throughput Data
 
 The table below lists the run count, request count, average RPS, p90 RPS,
 minimum RPS, and maximum RPS for each G7e concurrency scenario.
 
-![G7e throughput data table](imgs/g7e/resized-g7e_throughput_vs_concurrency_table.png)
+![G7e throughput data table](imgs/g7e/2_g7e_throughput_vs_concurrency_table.png)
 
 ## G6e Results
 
@@ -65,25 +65,25 @@ The G6e SageMaker real-time endpoint shows higher latency as concurrency
 increases. At `c64`, p90 TTFT is 48.04 seconds and p90 full-response latency is
 50.61 seconds.
 
-![G6e p90 TTFT and full-response latency by concurrency](imgs/g6e/resized-g6e_ttft_vs_e2e_graph.png)
+![G6e p90 TTFT and full-response latency by concurrency](imgs/g6e/1_g6e_ttft_vs_e2e_graph.png)
 
 ### Latency Data
 
 The table below lists the p90 TTFT and p90 full-response latency values used in
 the G6e latency chart.
 
-![G6e latency data table](imgs/g6e/resized-gee_ttft_vs_e2e_table.png)
+![G6e latency data table](imgs/g6e/1_g6e_ttft_vs_e2e_table.png)
 
 ### Throughput by Concurrency
 
 G6e endpoint throughput increases with concurrency and reaches 1.05 average RPS
 and 1.11 p90 RPS at `c64`.
 
-![G6e average and p90 throughput by concurrency](imgs/g6e/resized-g6e_throughput_vs_concurrency.png)
+![G6e average and p90 throughput by concurrency](imgs/g6e/2_g6e_throughput_vs_concurrency.png)
 
 ### Throughput Data
 
 The table below lists the run count, request count, average RPS, p90 RPS,
 minimum RPS, and maximum RPS for each G6e concurrency scenario.
 
-![G6e throughput data table](imgs/g6e/resized-g6e_throughput_vs_concurrency_table.png)
+![G6e throughput data table](imgs/g6e/2_g6e_throughput_vs_concurrency_table.png)
