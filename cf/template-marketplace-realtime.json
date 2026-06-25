@@ -132,12 +132,6 @@
       "Default": "ml.g7e.2xlarge",
       "Description": "Primary SageMaker real-time inference instance type. SageMaker tries this pool first.",
       "AllowedValues": [
-        "ml.g5.xlarge",
-        "ml.g5.2xlarge",
-        "ml.g5.4xlarge",
-        "ml.g6.xlarge",
-        "ml.g6.2xlarge",
-        "ml.g6.4xlarge",
         "ml.g6e.xlarge",
         "ml.g6e.2xlarge",
         "ml.g6e.4xlarge",
