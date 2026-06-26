@@ -28,11 +28,13 @@ AWS Marketplace SageMaker model package. This guide walks you through deploying 
    - [Steps](#real-time-steps)
    - [Parameters](#real-time-parameters)
    - [How to use](#real-time-how-to-use)
- 5. [Batch transform](#batch-transform)
-    - [Steps](#batch-steps)
-    - [Parameters](#batch-parameters)
-    - [How to use](#batch-how-to-use)
-6. [Known issues](#known-issues)
+5. [Batch transform](#batch-transform)
+     - [Steps](#batch-steps)
+     - [Parameters](#batch-parameters)
+     - [How to use](#batch-how-to-use)
+6. [Delete an inference](#delete-an-inference)
+7. [Unsubscribe from AWS Marketplace](#unsubscribe-from-aws-marketplace)
+8. [Known issues](#known-issues)
 
 ---
 
@@ -244,6 +246,90 @@ Template in this repo: [`cf/template-marketplace-batch-transform.json`]({{ '/cf/
   pick a newer supported GPU family in the notebook. See [Known issues](#known-issues).
 - **Quota:** the job needs *SageMaker batch transform* quota for the chosen instance type in the
   Region.
+
+---
+
+## Delete an inference
+
+{: .warning }
+> Deleting the inference resources is the only way to **stop SageMaker hosting / batch
+> charges** for MedGemma. Charges keep accruing while a real-time endpoint is `InService` or a
+> batch transform job is `InProgress`. Canceling the Marketplace subscription alone does
+> **not** stop these charges — see [Unsubscribe](#unsubscribe-from-aws-marketplace).
+
+### Option A — Delete the CloudFormation stack (recommended)
+
+The Tech42 stacks ([real-time](#real-time-inference) / [batch](#batch-transform)) create the
+SageMaker model, endpoint config, endpoint, IAM role, S3 bucket, CloudWatch dashboard, and
+autoscaling policy as a single stack. Deleting the stack tears them all down together.
+
+1. Open the [AWS CloudFormation console](https://console.aws.amazon.com/cloudformation/).
+2. Select the stack you launched for MedGemma (e.g. `medgemma-realtime`).
+3. Click **Delete** → **Delete**.
+4. Wait for stack status `DELETE_COMPLETE`.
+
+For a **real-time** stack, CloudFormation deletes the endpoint, endpoint config, model, and
+autoscaling target in the right order. For a **batch** stack, the managed S3 bucket is retained
+by default (so your input/output data isn't lost) — empty and delete it manually if you no
+longer need it.
+
+### Option B — Delete individual SageMaker resources
+
+Use this if you deployed the resources manually (not through CloudFormation), or if a stack
+delete failed and left resources behind. Deleting the endpoint does **not** delete its
+configuration or the model — delete them in this order:
+
+1. **Delete the endpoint** (real-time) — stops hosting charges immediately.
+   - Console: **SageMaker → Inference → Endpoints** → select → **Actions → Delete**.
+   - CLI: `aws sagemaker delete-endpoint --endpoint-name <endpoint-name>`
+2. **Stop any running batch transform job** (batch).
+   - Console: **SageMaker → Batch transform jobs** → select → **Stop**.
+   - CLI: `aws sagemaker stop-transform-job --transform-job-name <job-name>`
+3. **Delete the endpoint configuration.**
+   - Console: **SageMaker → Inference → Endpoint configurations** → select → **Actions → Delete**.
+   - CLI: `aws sagemaker delete-endpoint-config --endpoint-config-name <config-name>`
+4. **Delete the SageMaker model.**
+   - Console: **SageMaker → Inference → Models** → select → **Actions → Delete**.
+   - CLI: `aws sagemaker delete-model --model-name <model-name>`
+
+Deleting the SageMaker model only removes the model entry — it does not delete the underlying
+Marketplace model package, the IAM role, or any S3 artifacts.
+
+---
+
+## Unsubscribe from AWS Marketplace
+
+AWS Marketplace **does** support self-service cancellation of MedGemma, but only after all
+inference resources are gone. Canceling stops future Marketplace charges; it does **not** refund
+charges already on an invoice, and it does **not** stop SageMaker hosting/batch charges on
+running endpoints or jobs.
+
+### Before you cancel
+
+1. **Delete all inference resources** for this subscription — follow
+   [Delete an inference](#delete-an-inference) first.
+2. Confirm no real-time endpoints are `InService` and no batch transform jobs are running for
+   the MedGemma model package.
+
+### Cancel the subscription
+
+1. Open the [AWS Marketplace console](https://console.aws.amazon.com/marketplace) →
+   **Manage subscriptions**.
+2. Open the **Delivery method** filter and choose **SageMaker Model**.
+3. Select your **MedGemma** subscription.
+4. Under **Agreement**, open the **Actions** menu → **Cancel subscription**.
+5. In the dialog, type `confirm`, then click **Yes, cancel subscription**.
+
+After cancellation you can no longer launch the MedGemma algorithm or model package in any
+Region. To use it again, re-subscribe from the Marketplace listing and fetch a fresh Model ARN.
+
+### When self-service cancel is unavailable
+
+Self-service cancellation is available for usage-based (pay-as-you-go) subscriptions and for
+public contracts within **48 hours** of purchase. For other agreement types, the seller
+(Tech42) must initiate the cancellation request, which you then approve from the same
+**Manage subscriptions** page. For past-charge refunds, contact Tech42 to submit a billing
+adjustment request — Marketplace cancellation alone does not issue refunds.
 
 ---
 
